@@ -16,10 +16,17 @@
 		(calibrated ?arg0 - instrument)
 		(have_image ?arg0 - image_direction ?arg1 - mode)
 		(calibration_target ?arg0 - instrument ?arg1 - calib_direction)
+		(is_moving ?arg0 - image_direction)
+		(is_stationary ?arg0 - image_direction)
+		(resolved_motion ?arg - image_direction)
 	)
 
 	(:task do_observation
 		:parameters (?do_d - image_direction ?do_m - mode)
+	)
+
+	(:task resolve_motion
+		:parameters (?sat - satellite ?dir - image_direction)
 	)
 
 	(:task activate_instrument
@@ -30,13 +37,17 @@
 		:parameters (?ac_s - satellite ?ac_i - instrument)
 	)
 
+	(:task take_img_abs
+		:parameters (?sat - satellite ?dir - image_direction ?ins - instrument ?mode - mode)
+	)
+
 	(:method method0
 		:parameters (?mdoatt_t_d_prev - direction ?mdoatt_t_s - satellite ?mdoatt_ti_d - image_direction ?mdoatt_ti_i - instrument ?mdoatt_ti_m - mode)
 		:task (do_observation ?mdoatt_ti_d ?mdoatt_ti_m)
 		:subtasks (and
 		 (task0 (activate_instrument ?mdoatt_t_s ?mdoatt_ti_i))
 		 (task1 (turn_to ?mdoatt_t_s ?mdoatt_ti_d ?mdoatt_t_d_prev))
-		 (task2 (take_image ?mdoatt_t_s ?mdoatt_ti_d ?mdoatt_ti_i ?mdoatt_ti_m))
+		 (task2 (take_img_abs ?mdoatt_t_s ?mdoatt_ti_d ?mdoatt_ti_i ?mdoatt_ti_m))
 		)
 		:ordering (and
 			(< task0 task1)
@@ -52,7 +63,7 @@
 		:task (do_observation ?mdott_ti_d ?mdott_ti_m)
 		:subtasks (and
 		 (task0 (turn_to ?mdott_t_s ?mdott_ti_d ?mdott_t_d_prev))
-		 (task1 (take_image ?mdott_t_s ?mdott_ti_d ?mdott_ti_i ?mdott_ti_m))
+		 (task1 (take_img_abs ?mdott_t_s ?mdott_ti_d ?mdott_ti_i ?mdott_ti_m))
 		)
 		:ordering (and
 			(< task0 task1)
@@ -67,7 +78,7 @@
 		:task (do_observation ?mdoat_ti_d ?mdoat_ti_m)
 		:subtasks (and
 		 (task0 (activate_instrument ?mdoat_ti_s ?mdoat_ti_i))
-		 (task1 (take_image ?mdoat_ti_s ?mdoat_ti_d ?mdoat_ti_i ?mdoat_ti_m))
+		 (task1 (take_img_abs ?mdoat_ti_s ?mdoat_ti_d ?mdoat_ti_i ?mdoat_ti_m))
 		)
 		:ordering (and
 			(< task0 task1)
@@ -78,7 +89,7 @@
 		:parameters (?mdot_ti_d - image_direction ?mdot_ti_i - instrument ?mdot_ti_m - mode ?mdot_ti_s - satellite)
 		:task (do_observation ?mdot_ti_d ?mdot_ti_m)
 		:subtasks (and
-		 (task0 (take_image ?mdot_ti_s ?mdot_ti_d ?mdot_ti_i ?mdot_ti_m))
+		 (task0 (take_img_abs ?mdot_ti_s ?mdot_ti_d ?mdot_ti_i ?mdot_ti_m))
 		)
 	)
 
@@ -134,6 +145,34 @@
 		)
 	)
 
+	(:method method8
+		:parameters (?sat - satellite ?dir - image_direction)
+		:task (resolve_motion ?sat ?dir)
+		:subtasks (and
+		 (task0 (calculate_trajectory ?sat ?dir))
+		)
+	)
+
+	(:method method9
+		:parameters (?sat - satellite ?dir - image_direction)
+		:task (resolve_motion ?sat ?dir)
+		:subtasks (and
+		 (task0 (fix_instrument_direction ?sat ?dir))
+		)
+	)
+
+	(:method method10
+		:parameters (?sat - satellite ?dir - image_direction ?ins - instrument ?mode - mode)
+		:task (take_img_abs ?sat  ?dir ?ins ?mode)
+		:subtasks (and
+		 (task0 (detect_motion ?sat ?dir))
+		 (task1 (take_image ?sat ?dir ?ins ?mode))
+		)
+		:ordering (and
+			(< task0 task1)
+		)
+	)
+
 	(:action turn_to
 		:parameters (?t_s - satellite ?t_d_new - direction ?t_d_prev - direction)
 		:precondition 
@@ -144,6 +183,45 @@
 			(and
 				(pointing ?t_s ?t_d_new)
 				(not (pointing ?t_s ?t_d_prev))
+			)
+	)
+
+	(:action detect_motion
+		:parameters (?t_s - satellite ?t_d - image_direction)
+		:precondition
+			(and
+				(pointing ?t_s ?t_d)
+			)
+		:effect
+			(oneof
+				(is_moving ?t_d)
+				(is_stationary ?t_d)
+			)
+	)
+
+	(:action calculate_trajectory
+		:parameters (?t_s - satellite ?t_d - direction)
+		:precondition 
+			(and
+				(pointing ?t_s ?t_d)
+				(is_moving ?t_d)
+			)
+		:effect
+			(and
+				(resolved_motion ?t_d)
+			)
+	)
+
+	(:action fix_instrument_direction
+		:parameters (?t_s - satellite ?t_d - direction)
+		:precondition 
+			(and
+				(pointing ?t_s ?t_d)
+				(is_stationary ?t_d)
+			)
+		:effect
+			(and
+				(resolved_motion ?t_d)
 			)
 	)
 
