@@ -31,6 +31,8 @@
      (have_rock_analysis ?x - rover ?p - waypoint)
      (have_soil_analysis ?x - rover ?p - waypoint)
      (on_board ?camera - camera ?rover - rover)
+     (is_faulty ?camera - camera)
+     (is_repaired ?camera - camera)
      (store_of ?s - store ?rover - rover)
      (supports ?camera - camera ?mode - mode)
      (visible ?x ?y - waypoint)
@@ -47,7 +49,33 @@
   (:task send_image_data :parameters (?rover - rover ?objective - objective ?mode - mode))
   (:task send_rock_data :parameters (?rover - rover ?waypoint - waypoint))
   (:task send_soil_data :parameters (?rover - rover ?waypoint - waypoint))
+  (:task repair_camera_abs :parameters (?camera - camera))
+  (:task retry_if_necessary :parameters (?objective - objective ?mode - mode))
   
+  (:method m-retry_image-1
+    :parameters (?objective - objective ?mode - mode ?camera - camera ?rover - rover ?waypoint - waypoint)
+    :task (retry_if_necessary ?objective ?mode)
+    :precondition (and 
+        (is_faulty ?camera)
+        (on_board ?camera ?rover)
+        (supports ?camera ?mode)
+      )
+    :ordered-subtasks (and
+        (repair_camera_abs ?camera)
+        (calibrate_abs ?rover ?camera)
+        (navigate_abs ?rover ?waypoint)
+        (take_image_with_repaired_camera ?rover ?waypoint ?objective ?camera ?mode)
+      )
+  )
+
+  (:method m-retry_image-2
+    :parameters (?objective - objective ?mode - mode ?camera - camera ?rover - rover ?waypoint - waypoint)
+    :task (retry_if_necessary ?objective ?mode)
+    :precondition ()
+    :ordered-subtasks ()
+  )
+
+
   (:method m-empty-store-1
     :parameters (?s - store ?rover - rover)
     :task (empty-store ?s ?rover)
@@ -106,6 +134,19 @@
         (visit ?mid)
         (navigate ?rover ?mid ?to)
         (unvisit ?mid)
+      )
+  )
+
+  (:method m-repair_camera_abs
+    :parameters (?rover - rover ?camera - camera ?to - waypoint ?lander - lander)
+    :task (repair_camera_abs ?camera)
+    :precondition (and 
+        (is_faulty ?camera)
+        (at_lander ?lander ?to)
+      )
+    :ordered-subtasks (and 
+        (navigate_abs ?rover ?to)
+        (repair_camera ?camera)
       )
   )
 
@@ -191,6 +232,7 @@
         (calibrate_abs ?rover ?camera)
         (navigate_abs ?rover ?waypoint)
         (take_image ?rover ?waypoint ?objective ?camera ?mode)
+        (retry_if_necessary ?objective ?mode)
         (send_image_data ?rover ?objective ?mode)
       )
   )
@@ -236,6 +278,20 @@
         (not (at_soil_sample ?p))
         (full ?s)
         (have_soil_analysis ?x ?p)
+      )
+  )
+
+  (:action repair_camera
+      :parameters (?camera - camera ?r - rover ?l - lander ?w - waypoint)
+      :precondition (and
+          (is_faulty ?camera)
+          (at_lander ?l ?w)
+          (at ?r ?w)
+          (on_board ?camera ?r)
+          (available ?r)
+      )
+      :effect (and
+          (is_repaired ?camera)
       )
   )
 
@@ -291,10 +347,24 @@
         (visible_from ?o ?p)
         (at ?r ?p)
       )
-    :effect (and
-        (not (calibrated ?i ?r))
-        (have_image ?r ?o ?m)
+    :effect (oneof
+        (and (not (calibrated ?i ?r)) (have_image ?r ?o ?m))
+        (and (not (calibrated ?i ?r)) (not (have_image ?r ?o ?m)) (is_faulty ?i))
+    )
+  )
+
+  (:action take_image_with_repaired_camera
+    :parameters (?r - rover ?p - waypoint ?o - objective ?i - camera ?m - mode)
+    :precondition (and
+        (calibrated ?i ?r)
+        (on_board ?i ?r)
+        (equipped_for_imaging ?r)
+        (supports ?i ?m)
+        (visible_from ?o ?p)
+        (at ?r ?p)
+        (is_repaired ?i)
       )
+    :effect (and (not (calibrated ?i ?r)) (have_image ?r ?o ?m))
   )
 
   (:action communicate_soil_data
