@@ -22,26 +22,15 @@
     (isPartOf ?p - Port ?d - AbstractDevice)
     (isConnected ?p1 ?p2 - Port)
     (isOccupied ?p - Port)
+    (isFaulty ?p - Port)
     (pGuard)
     (pAim)
 )
 
-(:task ConnectDevices
-    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType)
-)
-
-(:task ValidateDeviceConnection
-    :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType)
-)
-
-(:task ValidatePortConnection
-    :parameters (?p1 ?p2 - Port ?t - SignalType)
-)
-
-
-(:task connect
-    :parameters (?p1 ?p2 - Port)
-)
+(:task ConnectDevices :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType))
+(:task ValidateDeviceConnection :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType))
+(:task ValidatePortConnection :parameters (?p1 ?p2 - Port ?t - SignalType))
+(:task connect :parameters (?p1 ?p2 - Port))
 
 (:method c1
     :parameters (?p1 ?p2 - Port ?t - PlugType)
@@ -101,9 +90,34 @@
 )
 
 
-
-
-
+(:method c3_faulty
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_3_faulty ?p1 ?p2 ?t)
+    )
+)
+(:method c4_faulty
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_4_faulty ?p1 ?p2 ?t)
+    )
+)
+(:method c7_faulty
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_7_faulty ?p1 ?p2 ?t)
+    )
+)
+(:method c8_faulty
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :task (connect ?p1 ?p2)
+    :subtasks (and 
+            (connect_8_faulty ?p1 ?p2 ?t)
+    )
+)
 
 (:method m1
     :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType ?p1 ?p2 - Port)
@@ -268,6 +282,7 @@
             (not (pGuard))
             (not (isOccupied ?p1))
             (not (isOccupied ?p2))
+            (not (isFaulty ?p1))
             (isPlugType ?p1 ?t)
             (isPlugType ?p2 ?t)
             (isPlugFace ?p1 male)
@@ -280,12 +295,31 @@
             (isOccupied ?p2)
     )
 )
+(:action connect_3_faulty
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isFaulty ?p1)
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 male)
+            (isPlugFace ?p2 female)
+            (isPlugDirection ?p1 both)
+        )
+    :effect (oneof
+        (and (isConnected ?p1 ?p2) (isOccupied ?p1) (isOccupied ?p2))
+        (and (not (isConnected ?p1 ?p2)) (isOccupied ?p1) (isOccupied ?p2))
+    )
+)
 (:action connect_4
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :precondition (and
             (not (pGuard))
             (not (isOccupied ?p1))
             (not (isOccupied ?p2))
+            (not (isFaulty ?p1))
             (isPlugType ?p1 ?t)
             (isPlugType ?p2 ?t)
             (isPlugFace ?p1 male)
@@ -296,6 +330,24 @@
             (isConnected ?p1 ?p2)
             (isOccupied ?p1)
             (isOccupied ?p2)
+    )
+)
+(:action connect_4_faulty
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isFaulty ?p1)
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 male)
+            (isPlugFace ?p2 female)
+            (isPlugDirection ?p2 both)
+        )
+    :effect (oneof
+        (and (isConnected ?p1 ?p2) (isOccupied ?p1) (isOccupied ?p2))
+        (and (not (isConnected ?p1 ?p2)) (isOccupied ?p1) (isOccupied ?p2))
     )
 )
 (:action connect_5
@@ -342,6 +394,7 @@
             (not (pGuard))
             (not (isOccupied ?p1))
             (not (isOccupied ?p2))
+            (not (isFaulty ?p2))
             (isPlugType ?p1 ?t)
             (isPlugType ?p2 ?t)
             (isPlugFace ?p1 female)
@@ -354,12 +407,31 @@
             (isOccupied ?p2)
     )
 )
+(:action connect_7_faulty
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isFaulty ?p2)
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 female)
+            (isPlugFace ?p2 male)
+            (isPlugDirection ?p1 both)
+        )
+    :effect (oneof
+        (and (isConnected ?p1 ?p2) (isOccupied ?p1) (isOccupied ?p2))
+        (and (not (isConnected ?p1 ?p2)) (isOccupied ?p1) (isOccupied ?p2))
+    )
+)
 (:action connect_8
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :precondition (and
             (not (pGuard))
             (not (isOccupied ?p1))
             (not (isOccupied ?p2))
+            (not (isFaulty ?p2))
             (isPlugType ?p1 ?t)
             (isPlugType ?p2 ?t)
             (isPlugFace ?p1 female)
@@ -372,7 +444,24 @@
             (isOccupied ?p2)
     )
 )
-
+(:action connect_8_faulty
+    :parameters (?p1 ?p2 - Port ?t - PlugType)
+    :precondition (and
+            (not (pGuard))
+            (not (isOccupied ?p1))
+            (not (isOccupied ?p2))
+            (isFaulty ?p2)
+            (isPlugType ?p1 ?t)
+            (isPlugType ?p2 ?t)
+            (isPlugFace ?p1 female)
+            (isPlugFace ?p2 male)
+            (isPlugDirection ?p2 both)
+        )
+    :effect (oneof
+        (and (isConnected ?p1 ?p2) (isOccupied ?p1) (isOccupied ?p2))
+        (and (not (isConnected ?p1 ?p2)) (isOccupied ?p1) (isOccupied ?p2))
+    )
+)
 (:action disconnect
     :parameters (?p1 ?p2 - Port)
     :precondition (and

@@ -14,6 +14,7 @@
     cableWithPlugType3 - Cable
     cableWithPlugType4 - Cable
     cableWithPlugType5 - Cable
+    faultyCable - Cable
     ;; Devices
     pc printer - Device
     ;; Adapters
@@ -32,6 +33,9 @@
     cableWithPlugType4-b - Port
     cableWithPlugType5-a - Port
     cableWithPlugType5-b - Port
+    ;; FaultyCable - Ports
+    faultyCable-a - FaultyPort
+    faultyCable-b - FaultyPort
     ;; Device - Ports
     printer-aPlugType5 pc-bPlugType1 - Port
     ;; Adapter - Ports
@@ -180,6 +184,19 @@
     (isPlugDirection cableWithPlugType5-b both)
     (isSignalRepeater cableWithPlugType5-a cableWithPlugType5-b data)
     (isSignalRepeater cableWithPlugType5-b cableWithPlugType5-a data)
+    ;; FaultyCable
+    (isFaulty faultyCable-a)
+    (isFaulty faultyCable-b)
+    (isPartOf faultyCable-a faultyCable)
+    (isPartOf faultyCable-b faultyCable)
+    (isPlugType faultyCable-a plugType1)
+    (isPlugType faultyCable-b plugType1)
+    (isPlugFace faultyCable-a male)
+    (isPlugFace faultyCable-b male)
+    (isPlugDirection faultyCable-a both)
+    (isPlugDirection faultyCable-b both)
+    (isSignalRepeater faultyCable-a faultyCable-b data)
+    (isSignalRepeater faultyCable-b faultyCable-a data)
 )
 
 (:goal
