@@ -20,6 +20,7 @@
   (lifting ?x - hoist ?y - crate)
   (available ?x - hoist)
   (clear ?x - surface)
+  (supervisor_needed ?x - hoist ?y - crate ?z - truck ?p - place)
 )
 
 (:task do_put_on :parameters (?c - crate ?s2 - surface))
@@ -28,13 +29,53 @@
 (:task do_lift_crate :parameters (?c - crate ?p - place ?h - hoist))
 (:task do_load_truck :parameters (?c - crate ?s - surface ?p - place ?t - truck))
 (:task do_unload_truck :parameters (?c - crate ?s - surface ?p - place ?t - truck))
+(:task supervise_load_if_needed :parameters (?h - hoist ?c - crate ?t - truck ?p - place))
+(:task supervise_unload_if_needed :parameters (?h - hoist ?c - crate ?t - truck ?p - place))
+
+(:method m12_supervise_load_if_needed
+  :parameters (?h - hoist ?c - crate ?t - truck ?p - place)
+  :task (supervise_load_if_needed ?h ?c ?t ?p)
+  :precondition ()
+  :ordered-subtasks(and
+      (Supervised_Load ?h ?c ?t ?p)
+  )
+)
+(:method m13_supervise_load_if_needed
+  :parameters (?h - hoist ?c - crate ?t - truck ?p - place)
+  :task (supervise_load_if_needed ?h ?c ?t ?p)
+  :precondition ()
+  :ordered-subtasks(and
+      (nop)
+  )
+)
+
+(:method m14_supervise_unload_if_needed
+  :parameters (?h - hoist ?c - crate ?t - truck ?p - place)
+  :task (supervise_unload_if_needed ?h ?c ?t ?p)
+  :precondition ()
+  :ordered-subtasks(and
+      (Supervised_Unload ?h ?c ?t ?p)
+  )
+)
+(:method m15_supervise_unload_if_needed
+  :parameters (?h - hoist ?c - crate ?t - truck ?p - place)
+  :task (supervise_unload_if_needed ?h ?c ?t ?p)
+  :precondition ()
+  :ordered-subtasks(and
+      (nop)
+  )
+)
 
 (:method m0_do_put_on
   :parameters ( ?c - crate  ?s2 - surface )
   :task (do_put_on ?c ?s2)
-  :precondition(and (on ?c ?s2))
-  :ordered-subtasks(and (t1 (nop))) ) 
-
+  :precondition(and
+    (on ?c ?s2)
+  )
+  :ordered-subtasks(and
+    (t1 (nop))
+  )
+)
 (:method m1_do_put_on
   :parameters ( ?c - crate  ?s2 - surface ?p - place ?h - hoist )
   :task (do_put_on ?c ?s2)
@@ -45,8 +86,7 @@
     (t3 (do_lift_crate ?c ?p ?h))
     (t4 (Drop ?h ?c ?s2 ?p))
   )
-) 
-
+)
 (:method m2_do_put_on
   :parameters ( ?c - crate  ?s2 - surface ?p - place ?t - truck ?h - hoist )
   :task (do_put_on ?c ?s2)
@@ -54,11 +94,11 @@
   :ordered-subtasks(and 
     (t1 (do_get_truck ?t ?p))
     (t2 (do_clear ?s2 ?p))
-    (t3 (Unload ?h ?c ?t ?p))
-    (t4 (Drop ?h ?c ?s2 ?p))
+    (t3 (Unsupervised_Unload ?h ?c ?t ?p))
+    (t4 (supervise_unload_if_needed ?h ?c ?t ?p))
+    (t5 (Drop ?h ?c ?s2 ?p))
   )
 )
-
 (:method m3_do_put_on
   :parameters ( ?c - crate  ?s2 - surface ?s1 - surface ?p1 - place ?t - truck ?p2 - place )
   :task (do_put_on ?c ?s2)
@@ -70,13 +110,15 @@
   )
 ) 
 
+
+
+
 (:method m4_do_clear
   :parameters ( ?s1 - surface  ?p1 - place )
   :task (do_clear ?s1 ?p1)
   :precondition(and (clear ?s1) (at ?s1 ?p1))
   :ordered-subtasks(and (t1 (nop)))
-) 
-
+)
 (:method m5_do_clear
   :parameters ( ?s1 - surface  ?p1 - place ?c - crate ?t - truck ?h1 - hoist )
   :task (do_clear ?s1 ?p1)
@@ -86,14 +128,23 @@
     (at ?s1 ?p1)
     (at ?h1 ?p1)
   )
-  :ordered-subtasks(and (t1 (do_clear ?c ?p1)) (t2 (Lift ?h1 ?c ?s1 ?p1)) (t3 (do_get_truck ?t ?p1)) (t4 (Load ?h1 ?c ?t ?p1))) ) 
+  :ordered-subtasks(and
+    (t1 (do_clear ?c ?p1))
+    (t2 (Lift ?h1 ?c ?s1 ?p1))
+    (t3 (do_get_truck ?t ?p1))
+    (t4 (Unsupervised_Load ?h1 ?c ?t ?p1))
+    (t5 (supervise_load_if_needed ?h1 ?c ?t ?p1))
+  )
+) 
+
+
 
 (:method m6_do_get_truck
   :parameters ( ?t - truck  ?p1 - place )
   :task (do_get_truck ?t ?p1)
   :precondition(and (at ?t ?p1))
-  :ordered-subtasks(and (t1 (nop))) ) 
-
+  :ordered-subtasks(and (t1 (nop)))
+) 
 (:method m7_do_get_truck
   :parameters ( ?t - truck  ?p1 - place ?p2 - place )
   :task (do_get_truck ?t ?p1)
@@ -103,16 +154,17 @@
   )
 ) 
 
+
 (:method m8_do_lift_crate
-  :parameters ( ?c - crate  ?p - place  ?h - hoist ?t - truck )
+  :parameters ( ?c - crate  ?p - place  ?h - hoist ?t - truck)
   :task (do_lift_crate ?c ?p ?h)
   :precondition(and (in ?c ?t) (at ?h ?p))
   :ordered-subtasks(and
     (t1 (do_get_truck ?t ?p))
-    (t2 (Unload ?h ?c ?t ?p))
+    (t2 (Unsupervised_Unload ?h ?c ?t ?p))
+    (t3 (supervise_unload_if_needed ?h ?c ?t ?p))
   )
-) 
-
+)
 (:method m9_do_lift_crate
   :parameters ( ?c - crate  ?p - place  ?h - hoist ?s - surface )
   :task (do_lift_crate ?c ?p ?h)
@@ -122,7 +174,8 @@
     (at ?s ?p)
     (at ?h ?p)
   )
-  :ordered-subtasks(and (t1 (Lift ?h ?c ?s ?p))) ) 
+  :ordered-subtasks(and (t1 (Lift ?h ?c ?s ?p)))
+) 
 
 (:method m10_do_load_truck
   :parameters ( ?c - crate  ?s - surface  ?p - place  ?t - truck ?h - hoist )
@@ -132,9 +185,11 @@
     (t1 (do_get_truck ?t ?p))
     (t2 (do_clear ?c ?p))
     (t3 (Lift ?h ?c ?s ?p))
-    (t4 (Load ?h ?c ?t ?p))
+    (t4 (Unsupervised_Load ?h ?c ?t ?p))
+    (t5 (supervise_load_if_needed ?h ?c ?t ?p))
   )
 ) 
+
 
 (:method m11_do_unload_truck
   :parameters ( ?c - crate  ?s - surface  ?p - place  ?t - truck ?h - hoist )
@@ -147,8 +202,9 @@
   )
   :ordered-subtasks(and
     (t1 (do_clear ?s ?p))
-    (t2 (Unload ?h ?c ?t ?p))
-    (t3 (Drop ?h ?c ?s ?p))
+    (t2 (Unsupervised_Unload ?h ?c ?t ?p))
+    (t3 (supervise_unload_if_needed ?h ?c ?t ?p))
+    (t4 (Drop ?h ?c ?s ?p))
   )
 ) 
 
@@ -180,6 +236,7 @@
   )
 )
 
+;; Drop crate which is held by a hoist on a surface
 (:action Drop
   :parameters (?x - hoist ?y - crate ?z - surface ?p - place)
   :precondition (and
@@ -198,21 +255,32 @@
   )
 )
 
-(:action Load
+;; Load a truck by a crate which is held by a hoist
+(:action Unsupervised_Load
   :parameters (?x - hoist ?y - crate ?z - truck ?p - place)
   :precondition (and
     (at ?x ?p)
     (at ?z ?p)
     (lifting ?x ?y)
   )
-  :effect (and
-    (not (lifting ?x ?y))
-    (in ?y ?z)
-    (available ?x)
+  :effect ( oneof
+    (and (not (lifting ?x ?y)) (in ?y ?z) (available ?x))
+    (and (supervisor_needed ?x ?y ?z ?p))
   )
 )
+(:action Supervised_Load
+  :parameters (?x - hoist ?y - crate ?z - truck ?p - place)
+  :precondition (and
+    (at ?x ?p)
+    (at ?z ?p)
+    (lifting ?x ?y)
+    (supervisor_needed ?x ?y ?z ?p)
+  )
+  :effect (and (not (lifting ?x ?y)) (in ?y ?z) (available ?x) (not (supervisor_needed ?x ?y ?z ?p)))
+)
 
-(:action Unload
+;; Take a crate from truck to a hoist
+(:action Unsupervised_Unload
   :parameters (?x - hoist ?y - crate ?z - truck ?p - place)
   :precondition (and
     (at ?x ?p)
@@ -220,11 +288,21 @@
     (available ?x)
     (in ?y ?z)
   )
-  :effect (and
-    (not (in ?y ?z))
-    (not (available ?x))
-    (lifting ?x ?y)
+  :effect (oneof
+    (and (not (in ?y ?z)) (not (available ?x)) (lifting ?x ?y))
+    (and (supervisor_needed ?x ?y ?z ?p))
   )
+)
+(:action Supervised_Unload
+  :parameters (?x - hoist ?y - crate ?z - truck ?p - place)
+  :precondition (and
+    (at ?x ?p)
+    (at ?z ?p)
+    (available ?x)
+    (in ?y ?z)
+    (supervisor_needed ?x ?y ?z ?p)
+  )
+  :effect (and (not (in ?y ?z)) (not (available ?x)) (lifting ?x ?y) (not (supervisor_needed ?x ?y ?z ?p)))
 )
 
 (:action nop
