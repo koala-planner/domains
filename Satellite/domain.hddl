@@ -166,10 +166,12 @@
 		:task (take_img_abs ?sat  ?dir ?ins ?mode)
 		:subtasks (and
 		 (task0 (detect_motion ?sat ?dir))
-		 (task1 (take_image ?sat ?dir ?ins ?mode))
+		 (task1 (resolve_motion ?sat ?dir))
+		 (task2 (take_image ?sat ?dir ?ins ?mode))
 		)
 		:ordering (and
 			(< task0 task1)
+			(< task1 task2)
 		)
 	)
 
@@ -278,6 +280,7 @@
 				(on_board ?ti_i ?ti_s)
 				(power_on ?ti_i)
 				(supports ?ti_i ?ti_m)
+				
 			)
 		:effect
 			(and
