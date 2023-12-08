@@ -10,7 +10,6 @@
 	)
  (:htn
   :tasks (and
-   (get_soil_data waypoint0)
    (get_rock_data waypoint0)
    (get_image_data objective1 low_res)
    )
