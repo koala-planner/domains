@@ -1,4 +1,3 @@
-; Snake by Mau Magnaguagno
 (define (domain snake)
   (:requirements :hierarchy :typing :equality :negative-preconditions :method-preconditions :universal-preconditions)
 
@@ -74,8 +73,8 @@
       (not (= ?headpos ?foodpos))
     )
     :effect (oneof
-      (and (not (mouse-at ?foodpos)) (not (head ?snake ?headpos)) (connected ?snake ?foodpos ?headpos) (head ?snake ?foodpos))
-      (and (not (mouse-at ?foodpos)))
+    	(and (not (mouse-at ?foodpos)) (not (head ?snake ?headpos))(connected ?snake ?foodpos ?headpos)(head ?snake ?foodpos))
+    	(and (not (mouse-at ?foodpos)))
     )
   )
 
