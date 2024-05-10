@@ -24,19 +24,15 @@
 	(:task do_observation
 		:parameters (?do_d - image_direction ?do_m - mode)
 	)
-
 	(:task resolve_motion
 		:parameters (?sat - satellite ?dir - image_direction)
 	)
-
 	(:task activate_instrument
 		:parameters (?ai_s - satellite ?ai_i - instrument)
 	)
-
 	(:task auto_calibrate
 		:parameters (?ac_s - satellite ?ac_i - instrument)
 	)
-
 	(:task take_img_abs
 		:parameters (?sat - satellite ?dir - image_direction ?ins - instrument ?mode - mode)
 	)
